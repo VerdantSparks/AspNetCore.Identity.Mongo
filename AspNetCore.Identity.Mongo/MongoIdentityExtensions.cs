@@ -101,6 +101,48 @@ namespace AspNetCore.Identity.Mongo
 
             return builder;
         }
+        public static IdentityBuilder AddIdentityMongoDbProvider<TUser, TRole, TKey>(this IServiceCollection services,
+            Action<IdentityOptions> setupIdentityAction,
+            Action<MongoIdentityOptions> setupDatabaseAction,
+            Func<IServiceProvider, RoleStore<TRole, TKey>> roleStoreFunction,
+            Func<IServiceProvider, UserStore<TUser, TRole, TKey>> userStoreFunction)
+            where TKey : IEquatable<TKey>
+            where TUser : MongoUser<TKey>
+            where TRole : MongoRole<TKey>
+        {
+            var dbOptions = new MongoIdentityOptions();
+            setupDatabaseAction(dbOptions);
+
+            var builder = services.AddIdentity<TUser, TRole>(setupIdentityAction ?? (x => { }));
+
+            builder.AddRoleStore<RoleStore<TRole, TKey>>()
+            .AddUserStore<UserStore<TUser, TRole, TKey>>()
+            .AddUserManager<UserManager<TUser>>()
+            .AddRoleManager<RoleManager<TRole>>()
+            .AddDefaultTokenProviders();
+
+            var migrationCollection = MongoUtil.FromConnectionString<MigrationHistory>(dbOptions.ConnectionString, dbOptions.MigrationCollection);
+
+            Task.WaitAny(Migrator.Apply(migrationCollection));
+
+            var userCollection = MongoUtil.FromConnectionString<TUser>(dbOptions.ConnectionString, dbOptions.UsersCollection);
+            var roleCollection = MongoUtil.FromConnectionString<TRole>(dbOptions.ConnectionString, dbOptions.RolesCollection);
+
+            services.AddSingleton(x => userCollection);
+            services.AddSingleton(x => roleCollection);
+
+            // register custom ObjectId TypeConverter
+            if (typeof(TKey) == typeof(ObjectId))
+            {
+                RegisterTypeConverter<ObjectId, ObjectIdConverter>();
+            }
+
+            // Identity Services
+            services.AddTransient<IRoleStore<TRole>>(roleStoreFunction);
+            services.AddTransient<IUserStore<TUser>>(userStoreFunction);
+
+            return builder;
+        }
 
         private static void RegisterTypeConverter<T, TC>() where TC : TypeConverter
         {
