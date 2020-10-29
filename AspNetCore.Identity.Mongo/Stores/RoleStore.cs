@@ -20,16 +20,16 @@ namespace AspNetCore.Identity.Mongo.Stores
         where TKey : IEquatable<TKey>
         where TRole : MongoRole<TKey>
     {
-        private readonly IMongoCollection<TRole> _collection;
+        protected readonly IMongoCollection<TRole> _collection;
 
         public RoleStore(IMongoCollection<TRole> collection)
         {
             _collection = collection;
         }
 
-        public IQueryable<TRole> Roles => _collection.AsQueryable();
+        public virtual IQueryable<TRole> Roles => _collection.AsQueryable();
 
-        public async Task<IdentityResult> CreateAsync(TRole role, CancellationToken cancellationToken)
+        public virtual async Task<IdentityResult> CreateAsync(TRole role, CancellationToken cancellationToken)
         {
             if (role == null) throw new ArgumentNullException(nameof(role));
 
@@ -40,7 +40,7 @@ namespace AspNetCore.Identity.Mongo.Stores
             return IdentityResult.Success;
         }
 
-        public async Task<IdentityResult> UpdateAsync(TRole role, CancellationToken cancellationToken)
+        public virtual async Task<IdentityResult> UpdateAsync(TRole role, CancellationToken cancellationToken)
         {
             if (role == null) throw new ArgumentNullException(nameof(role));
 
@@ -49,7 +49,7 @@ namespace AspNetCore.Identity.Mongo.Stores
             return IdentityResult.Success;
         }
 
-        public async Task<IdentityResult> DeleteAsync(TRole role, CancellationToken cancellationToken)
+        public virtual async Task<IdentityResult> DeleteAsync(TRole role, CancellationToken cancellationToken)
         {
             if (role == null) throw new ArgumentNullException(nameof(role));
 
@@ -58,21 +58,21 @@ namespace AspNetCore.Identity.Mongo.Stores
             return IdentityResult.Success;
         }
 
-        public Task<string> GetRoleIdAsync(TRole role, CancellationToken cancellationToken)
+        public virtual Task<string> GetRoleIdAsync(TRole role, CancellationToken cancellationToken)
         {
             if (role == null) throw new ArgumentNullException(nameof(role));
 
             return Task.FromResult(role.Id.ToString());
         }
 
-        public async Task<string> GetRoleNameAsync(TRole role, CancellationToken cancellationToken)
+        public virtual async Task<string> GetRoleNameAsync(TRole role, CancellationToken cancellationToken)
         {
             if (role == null) throw new ArgumentNullException(nameof(role));
 
             return (await _collection.FirstOrDefaultAsync(x => x.Id.Equals(role.Id), cancellationToken: cancellationToken).ConfigureAwait(false))?.Name ?? role.Name;
         }
 
-        public async Task SetRoleNameAsync(TRole role, string roleName, CancellationToken cancellationToken)
+        public virtual async Task SetRoleNameAsync(TRole role, string roleName, CancellationToken cancellationToken)
         {
             if (role == null) throw new ArgumentNullException(nameof(role));
             if (string.IsNullOrEmpty(roleName)) throw new ArgumentNullException(nameof(roleName));
@@ -82,14 +82,14 @@ namespace AspNetCore.Identity.Mongo.Stores
             await _collection.UpdateOneAsync(x => x.Id.Equals(role.Id), Builders<TRole>.Update.Set(x => x.Name, roleName), cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
-        public Task<string> GetNormalizedRoleNameAsync(TRole role, CancellationToken cancellationToken)
+        public virtual Task<string> GetNormalizedRoleNameAsync(TRole role, CancellationToken cancellationToken)
         {
             if (role == null) throw new ArgumentNullException(nameof(role));
 
             return Task.FromResult(role.NormalizedName);
         }
 
-        public async Task SetNormalizedRoleNameAsync(TRole role, string normalizedRoleName, CancellationToken cancellationToken)
+        public virtual async Task SetNormalizedRoleNameAsync(TRole role, string normalizedRoleName, CancellationToken cancellationToken)
         {
             if (role == null) throw new ArgumentNullException(nameof(role));
             if (string.IsNullOrEmpty(normalizedRoleName)) throw new ArgumentNullException(nameof(normalizedRoleName));
@@ -99,21 +99,21 @@ namespace AspNetCore.Identity.Mongo.Stores
             await _collection.UpdateOneAsync(x => x.Id.Equals(role.Id), Builders<TRole>.Update.Set(x => x.NormalizedName, normalizedRoleName), cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
-        public Task<TRole> FindByIdAsync(string roleId, CancellationToken cancellationToken)
+        public virtual Task<TRole> FindByIdAsync(string roleId, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(roleId)) throw new ArgumentNullException(nameof(roleId));
 
             return _collection.FirstOrDefaultAsync(x => x.Id.Equals(ConvertIdFromString(roleId)), cancellationToken: cancellationToken);
         }
 
-        public Task<TRole> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
+        public virtual Task<TRole> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(normalizedRoleName)) throw new ArgumentNullException(nameof(normalizedRoleName));
 
             return _collection.FirstOrDefaultAsync(x => x.NormalizedName == normalizedRoleName, cancellationToken: cancellationToken);
         }
 
-        public async Task<IList<Claim>> GetClaimsAsync(TRole role, CancellationToken cancellationToken = default)
+        public virtual async Task<IList<Claim>> GetClaimsAsync(TRole role, CancellationToken cancellationToken = default)
         {
             if (role == null) throw new ArgumentNullException(nameof(role));
 
@@ -124,7 +124,7 @@ namespace AspNetCore.Identity.Mongo.Stores
             return dbRole.Claims.Select(e => new Claim(e.ClaimType, e.ClaimValue)).ToList();
         }
 
-        public async Task AddClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default)
+        public virtual async Task AddClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default)
         {
             if (role == null) throw new ArgumentNullException(nameof(role));
             if (claim == null) throw new ArgumentNullException(nameof(claim));
@@ -147,7 +147,7 @@ namespace AspNetCore.Identity.Mongo.Stores
             }
         }
 
-        public Task RemoveClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default)
+        public virtual Task RemoveClaimAsync(TRole role, Claim claim, CancellationToken cancellationToken = default)
         {
             if (role == null) throw new ArgumentNullException(nameof(role));
             if (claim == null) throw new ArgumentNullException(nameof(claim));
@@ -163,7 +163,7 @@ namespace AspNetCore.Identity.Mongo.Stores
         {
         }
 
-        public void Dispose()
+        public virtual void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
